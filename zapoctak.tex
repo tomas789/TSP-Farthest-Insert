@@ -1,0 +1,111 @@
+\documentclass[11pt,twocolumn,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[czech]{babel}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{latexsym}
+\usepackage{listings}
+\usepackage{multicol}
+\usepackage{graphicx} 
+\usepackage{listings}
+
+
+\newcounter{vety}
+\newtheorem*{definice}{Definice}
+\newtheorem{vetal}[vety]{Věta L}
+\newtheorem{vetat}[vety]{Věta T}
+\newtheorem{vetabd}[vety]{Věta BD}
+\newtheorem*{dusledek}{Důsledek}
+\newtheorem*{opakovani}{Opakování}
+\newtheorem*{pozorovani}{Pozorování}
+\newtheorem*{poznamka}{Poznámka}
+\newtheorem*{tvrzeni}{Tvrzení}
+\newtheorem*{priklad}{Příklad}
+\newtheorem*{dukaz}{Důkaz}
+
+
+\lstset{language=Haskell}
+
+\begin{document}
+
+\begin{multicols}{2}
+\title{Odhad TSP - Haskell \\ Zápočtový program na Neprocedurální programování}
+\author{Tomáš Krejčí <tomas789@gmail.com>}
+\maketitle
+\end{multicols}
+
+\maketitle
+
+\section{Problém obchodního cestujícího}
+
+TSP (Traveling Salesman Problem, česky Problém obchodního cestujícího) je úloha o hledání nejkratší hamiltonovské kružnice v zadaném grahu s ohodnocenými hranami.
+
+Úloha je inspirována problémem, kdy má obchodní cestující objet $N$ měst tak, aby každé navštívil právě jednou a zároveň aby najezdil co nejméně. Převedeno do řeči teorie grafů máme graf $G = (V, E, c)$ takový, že $|V| = N$, $E = {V \choose 2}$ a $c\ :\ E^2 \to \mathbb{R}$. Případně $c$ může zobrazovat do libovolné jiné množiny na níž máme definovány operace $\oplus$ a $\preceq$.
+
+\subsection{Speciální případy}
+
+Speciálním případem TSP může být například situace, kdy $e$ splňuje trojúhelníkovou nerovnost
+$$\forall x,y,z \in V \ : \ c(\{x,z\}) \preceq c(\{x,y\}) \oplus c(\{y,z\})$$
+případně $c$ je metrika.
+
+Dalším speciálním případem je situace, kdy $V \subset \mathbb{R}^n$. $c$ poté může být například klasická euklidovská norma.
+
+\subsection{Heuristiky}
+
+TSP je výpočetně velmi složiný problém, kdy k nalezení optimálního řešení obsahujícího $N$ měst je třeba vyšetřit exponenciálně mnoho měst. 
+
+Nalezení nějaké dobré aproximace však může být mnohem snazší úloha. Jednou z prvních možností je \emph{nearest-neighbour algoritmus} který schematicky zapsáno vypadá následovně
+\begin{figure}[h]
+\begin{enumerate}
+\item $P = v \in V$ libovolně
+\item $\bold{while} \ P \neq V \ \bold{begin}$
+\item označ $v \in V \backslash P$ s nejmenší vzdáleností k $P$
+\item $P = P \cup v$
+\item $\bold{end}$
+\end{enumerate}
+\end{figure}
+
+
+Další možností jsou takzvané konstrukční heuristiky. Jejich schéma ja takové, že začneme s nějakou podcestou (podmnožina cesty v celém grafu) a postupně ji rozšiřujeme vkládáním nějakého vrcholu na vhodné místo dokud nemáme celou cestu. Tyto heuristiky se liší v několika významných aspektech.
+\begin{itemize}
+\item Jak vybrat počáteční podcestu
+\item Jak zvolit vrchol, který budeme vkládat
+\item Kam zvolený vrchol do cesty vložit
+\end{itemize}
+
+Počáteční podcesta je obvykle nějaké množina tří libovolně volených vrcholů nebo ve speciálním případě \emph{Euklidovského TSP} je dobrou volbou začít napčíklad s \emph{konvexním obalem} všech bodů, protože posloupnost vrcholů z konvexního obalu je vždy obsažena v optimálním řešení.
+
+Zvolený bod je obvykle vkládán na pozici v podcestě kde bude míc co nejmenší příspěvek na jejím prodloužení.
+
+Možností jak vybrat bod, který se bude vkládat do cesty je několik. Uvedu zde dva.
+\begin{itemize}
+\item \textbf{Nejlevnější vkládání}: Ze všech bodů vybereme ten, který způsobí nejmenší prodloužení cesty. Tento přístup je inspirovaný hladovými algoritmy.
+\item \textbf{Nejvzdálenější vložení}: Vložíme bod, jehož nejmenší vzdálenost od podcesty je největší. Tímto přístupem se snažíme v již pro malé cesty co do počtu vrcholů přiblížit celkovému tvaru cesty.
+\end{itemize}
+
+\section{Zadání}
+
+Cílem práce je implementovat nějakou vhodnou heuristiku TSP v programovacím jazyce Haskell.
+
+\section{Implementace}
+
+Program implementuje konstruktivní heuristiku nazvanou \emph{farthest insert} a jako počáteční množinu vrcholů vybírá koncexní obal množiny všech vrcholů. Vrcholy jsou implementovány jako body v $\mathbb{R}^2$ a jejich vzdálenost určuje uživatelem definovaná funkce.
+
+Uveďme nějaké základní typové konstruktory
+\begin{verbatim}
+data Point a = P a a deriving (Show,Eq)
+data Tour a = T [Point a] deriving (Show)
+distance :: Floating a => Point a -> Point a -> a
+\end{verbatim} 
+kde distance je funkce určující vzdálenosti mezi dvěma body.
+
+\section{Použití}
+
+Výsledný program přijímá na vstupu seznam bodů takových, že na každém řádku je jeden bod $P$. Formát řádku je "$P(x)$ $P(y)$". 
+Výstup je ve stejném formátu seřazený tak, jak jdou jednotlivé body zasebou ve výsledné cestě.
+
+\end{document}
